@@ -1,10 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
-<<<<<<< HEAD
-import { createCheckin, getCheckinsByMonth } from "@/lib/db"
-=======
 import { createCheckin, getCheckinsByMonth, getCheckinsByDate } from "@/lib/db"
->>>>>>> dev
 
 export async function GET(request: NextRequest) {
   const session = await getSession()
@@ -15,11 +11,6 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const year = Number.parseInt(searchParams.get("year") || new Date().getFullYear().toString())
   const month = Number.parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString())
-<<<<<<< HEAD
-
-  try {
-    const checkins = await getCheckinsByMonth(session.userId, year, month)
-=======
   const date = searchParams.get("date") // 新增：支持按日期查询
 
   try {
@@ -32,7 +23,6 @@ export async function GET(request: NextRequest) {
       checkins = await getCheckinsByMonth(session.userId, year, month)
     }
     
->>>>>>> dev
     return NextResponse.json({ checkins })
   } catch (error) {
     console.error("Failed to get checkins:", error)

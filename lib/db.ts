@@ -104,9 +104,6 @@ export async function getCheckinsByMonth(userId: string, year: number, month: nu
     for (const id of checkinIds) {
       const checkinData = await redis.get(`checkin:${id}`)
       if (checkinData) {
-<<<<<<< HEAD
-        const checkin = JSON.parse(checkinData as string) as CheckinRecord
-=======
         let checkin: CheckinRecord
         
         if (typeof checkinData === "string") {
@@ -128,7 +125,6 @@ export async function getCheckinsByMonth(userId: string, year: number, month: nu
           continue
         }
 
->>>>>>> dev
         const checkinDate = new Date(checkin.date)
         if (checkinDate.getFullYear() === year && checkinDate.getMonth() + 1 === month) {
           checkins.push(checkin)
@@ -136,9 +132,6 @@ export async function getCheckinsByMonth(userId: string, year: number, month: nu
       }
     }
 
-<<<<<<< HEAD
-    return checkins.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-=======
     // 按日期和时间排序
     return checkins.sort((a, b) => {
       const dateComparison = new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -148,19 +141,12 @@ export async function getCheckinsByMonth(userId: string, year: number, month: nu
       }
       return dateComparison
     })
->>>>>>> dev
   } catch (error) {
     console.error("Failed to get checkins:", error)
     return []
   }
 }
 
-<<<<<<< HEAD
-export async function deleteCheckin(id: string, userId: string): Promise<void> {
-  const checkinData = await redis.get(`checkin:${id}`)
-  if (checkinData) {
-    const checkin = JSON.parse(checkinData as string) as CheckinRecord
-=======
 // 新增：获取指定日期的所有打卡记录
 export async function getCheckinsByDate(userId: string, date: string): Promise<CheckinRecord[]> {
   try {
@@ -218,7 +204,6 @@ export async function deleteCheckin(id: string, userId: string): Promise<void> {
       return
     }
 
->>>>>>> dev
     await redis.del(`checkin:${id}`)
     await redis.srem(`user_checkins:${userId}`, id)
     await redis.srem(`date_checkins:${userId}:${checkin.date}`, id)
