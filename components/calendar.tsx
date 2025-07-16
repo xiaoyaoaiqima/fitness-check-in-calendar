@@ -82,18 +82,26 @@ export default function Calendar({ userId }: CalendarProps) {
     return days
   }
 
-  const getCheckinForDate = (day: number) => {
+  // 修改：获取指定日期的所有打卡记录
+  const getCheckinsForDate = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-    return checkins.find((checkin) => checkin.date === dateStr)
+    return checkins.filter((checkin) => checkin.date === dateStr)
+  }
+
+  // 修改：获取指定日期的打卡次数
+  const getCheckinCountForDate = (day: number) => {
+    return getCheckinsForDate(day).length
   }
 
   const handleDateClick = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-    const existingCheckin = getCheckinForDate(day)
+    const dateCheckins = getCheckinsForDate(day)
 
-    if (existingCheckin) {
-      setSelectedCheckin(existingCheckin)
+    if (dateCheckins.length > 0) {
+      // 如果有打卡记录，显示第一个记录的详情
+      setSelectedCheckin(dateCheckins[0])
     } else {
+      // 如果没有打卡记录，打开新建打卡模态框
       setSelectedDate(dateStr)
       setIsModalOpen(true)
     }
@@ -104,6 +112,7 @@ export default function Calendar({ userId }: CalendarProps) {
     fetchCheckins()
   }
 
+  // 修改：计算每周进度（按打卡次数计算）
   const calculateWeeklyProgress = () => {
     const today = new Date()
     const startOfWeek = new Date(today)
@@ -117,6 +126,7 @@ export default function Calendar({ userId }: CalendarProps) {
     return Math.min((weekCheckins.length / weeklyGoal) * 100, 100)
   }
 
+  // 修改：计算每月进度（按打卡次数计算）
   const calculateMonthlyProgress = () => {
     const daysInCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
     return (checkins.length / daysInCurrentMonth) * 100
@@ -151,14 +161,14 @@ export default function Calendar({ userId }: CalendarProps) {
             <CardTitle className="text-sm font-medium">本月打卡</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{checkins.length}天</div>
+            <div className="text-2xl font-bold">{checkins.length}次</div>
             <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
               <div
                 className="bg-green-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${monthlyProgress}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">打卡率: {Math.round(monthlyProgress)}%</p>
+            <p className="text-xs text-gray-500 mt-1">总打卡次数</p>
           </CardContent>
         </Card>
 
@@ -211,37 +221,45 @@ export default function Calendar({ userId }: CalendarProps) {
           </div>
 
           <div className="grid grid-cols-7 gap-1">
-  {days.map((day, index) => {
-    if (day === null) {
-      return <div key={`empty-${index}`} className="p-2" />
-    }
+            {days.map((day, index) => {
+              if (day === null) {
+                return <div key={`empty-${index}`} className="p-2" />
+              }
 
-    const checkin = getCheckinForDate(day)
-    const isToday =
-      new Date().toDateString() ===
-      new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString()
+              const checkinCount = getCheckinCountForDate(day)
+              const isToday =
+                new Date().toDateString() ===
+                new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString()
 
-    // 用年月日做 key，保证唯一
-    const key = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${day}`
+              const key = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${day}`
 
-    return (
-      <Button
-        key={key}
-        variant={checkin ? "default" : "ghost"}
-        className={`
-          p-2 h-12 relative
-          ${isToday ? "ring-2 ring-blue-500" : ""}
-          ${checkin ? "bg-green-500 hover:bg-green-600 text-white" : "hover:bg-gray-100"}
-        `}
-        onClick={() => handleDateClick(day)}
-      >
-        <span className="text-sm">{day}</span>
-        {checkin && <div className="absolute bottom-1 right-1 w-2 h-2 bg-white rounded-full" />}
-        {!checkin && isToday && <Plus className="absolute bottom-1 right-1 w-3 h-3 text-blue-500" />}
-      </Button>
-    )
-  })}
-</div>
+              return (
+                <Button
+                  key={key}
+                  variant={checkinCount > 0 ? "default" : "ghost"}
+                  className={`
+                    p-2 h-12 relative
+                    ${isToday ? "ring-2 ring-blue-500" : ""}
+                    ${checkinCount > 0 ? "bg-green-500 hover:bg-green-600 text-white" : "hover:bg-gray-100"}
+                  `}
+                  onClick={() => handleDateClick(day)}
+                >
+                  <span className="text-sm">{day}</span>
+                  {checkinCount > 0 && (
+                    <div className="absolute bottom-1 right-1 flex items-center gap-1">
+                      <div className="w-2 h-2 bg-white rounded-full" />
+                      {checkinCount > 1 && (
+                        <span className="text-xs bg-white text-green-600 px-1 rounded-full min-w-[16px] text-center">
+                          {checkinCount}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {!checkinCount && isToday && <Plus className="absolute bottom-1 right-1 w-3 h-3 text-blue-500" />}
+                </Button>
+              )
+            })}
+          </div>
         </CardContent>
       </Card>
 
