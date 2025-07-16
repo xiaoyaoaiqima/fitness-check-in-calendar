@@ -419,10 +419,85 @@ const Calendar: React.FC<{
     );
 };
 
+// --- AUTH COMPONENTS ---
+const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void; onLogin: (username: string, password: string) => void; onRegister: (username: string, password: string) => void; }> = ({ isOpen, onClose, onLogin, onRegister }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!username || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    if (isLogin) {
+      onLogin(username, password);
+    } else {
+      onRegister(username, password);
+    }
+  };
+
+  const resetForm = () => {
+    setUsername('');
+    setPassword('');
+    setError('');
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen, isLogin]);
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={isLogin ? "登录 Login" : "注册 Register"}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="用户名 Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Enter username"
+        />
+        <Input
+          label="密码 Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter password"
+        />
+        {error && <div className="text-red-400 text-sm">{error}</div>}
+        <Button type="submit" className="w-full">
+          {isLogin ? "登录 Login" : "注册 Register"}
+        </Button>
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-blue-400 hover:text-blue-300 text-sm"
+          >
+            {isLogin ? "没有账号？注册 Need an account? Register" : "已有账号？登录 Have an account? Login"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
 // --- MAIN APP COMPONENT ---
 function App() {
   const [checkIns, setCheckIns] = useLocalStorage<Record<string, CheckInData>>('fitnessCheckIns', {});
   const [settings, setSettings] = useLocalStorage<Settings>('fitnessSettings', INITIAL_SETTINGS);
+  
+  // Auth state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<string | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [authError, setAuthError] = useState('');
   
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -450,7 +525,116 @@ function App() {
     setSettings(newSettings);
   }, [setSettings]);
 
+  // Auth functions
+  const handleLogin = async (username: string, password: string) => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        setIsLoggedIn(true);
+        setUser(data.username);
+        setIsLoginModalOpen(false);
+        setAuthError('');
+      } else {
+        setAuthError(data.error || 'Login failed');
+      }
+    } catch (error) {
+      setAuthError('Network error. Please try again.');
+    }
+  };
+
+  const handleRegister = async (username: string, password: string) => {
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setAuthError('');
+        // After successful registration, automatically log in
+        await handleLogin(username, password);
+      } else {
+        setAuthError(data.error || 'Registration failed');
+      }
+    } catch (error) {
+      setAuthError('Network error. Please try again.');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsLoggedIn(false);
+    setUser(null);
+  };
+
+  // Check login status on app load
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.valid) {
+          setIsLoggedIn(true);
+          setUser(data.username);
+        } else {
+          localStorage.removeItem('token');
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem('token');
+      });
+    }
+  }, []);
+
   const selectedCheckInData = selectedDate ? checkIns[formatDate(selectedDate, 'yyyy-MM-dd')] : null;
+
+  // Show login screen if not logged in
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-gray-100 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-md mx-auto mt-20">
+          <div className="text-center mb-8">
+            <Icon name="Calendar" className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold mb-2">健身打卡日历</h1>
+            <p className="text-gray-400">Fitness Check-in Calendar</p>
+          </div>
+          
+          <div className="bg-gray-800 rounded-2xl shadow-2xl p-8">
+            <h2 className="text-xl font-bold text-center mb-6">欢迎回来 Welcome Back</h2>
+            <Button 
+              onClick={() => setIsLoginModalOpen(true)} 
+              className="w-full"
+            >
+              登录 / 注册 Login / Register
+            </Button>
+          </div>
+        </div>
+
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-4 sm:p-6 lg:p-8">
@@ -460,10 +644,16 @@ function App() {
             <Icon name="Calendar" className="w-8 h-8 text-blue-400" />
             <h1 className="text-2xl sm:text-3xl font-bold">健身打卡日历 Fitness Calendar</h1>
           </div>
-          <Button variant="secondary" onClick={() => setSettingsModalOpen(true)}>
-            <Icon name="Settings" className="w-5 h-5" />
-            <span className="hidden sm:inline">Settings</span>
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-gray-300">欢迎, {user}!</span>
+            <Button variant="secondary" onClick={() => setSettingsModalOpen(true)}>
+              <Icon name="Settings" className="w-5 h-5" />
+              <span className="hidden sm:inline">Settings</span>
+            </Button>
+            <Button variant="danger" onClick={handleLogout}>
+              退出 Logout
+            </Button>
+          </div>
         </header>
 
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
