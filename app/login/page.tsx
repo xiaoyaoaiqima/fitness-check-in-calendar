@@ -1,6 +1,16 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
 import LoginForm from "@/components/login-form"
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: '登录',
+  description: '登录健身打卡日历，开始你的科学健身之旅。安全便捷的账号管理，保护你的健身数据。',
+  robots: {
+    index: false, // 登录页面通常不需要被索引
+    follow: false,
+  },
+}
 
 export default async function LoginPage() {
   const session = await getSession()

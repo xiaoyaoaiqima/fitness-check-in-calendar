@@ -1,6 +1,16 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
 import SettingsForm from "@/components/settings-form"
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: '个人设置',
+  description: '个性化你的健身打卡日历设置，包括个人信息、训练偏好、数据展示方式等。',
+  robots: {
+    index: false, // 设置页面通常不需要被索引
+    follow: false,
+  },
+}
 
 export default async function SettingsPage() {
   const session = await getSession()
