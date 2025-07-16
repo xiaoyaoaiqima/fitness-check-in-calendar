@@ -104,7 +104,31 @@ export async function getCheckinsByMonth(userId: string, year: number, month: nu
     for (const id of checkinIds) {
       const checkinData = await redis.get(`checkin:${id}`)
       if (checkinData) {
+<<<<<<< HEAD
         const checkin = JSON.parse(checkinData as string) as CheckinRecord
+=======
+        let checkin: CheckinRecord
+        
+        if (typeof checkinData === "string") {
+          try {
+            checkin = JSON.parse(checkinData) as CheckinRecord
+          } catch (parseError) {
+            console.error(`Failed to parse checkin data for ${id}:`, parseError)
+            continue
+          }
+        } else if (typeof checkinData === "object" && checkinData !== null) {
+          checkin = checkinData as CheckinRecord
+        } else {
+          console.error(`Invalid checkin data format for ${id}:`, checkinData)
+          continue
+        }
+
+        if (!checkin.date || !checkin.exerciseType || !checkin.duration) {
+          console.error(`Incomplete checkin data for ${id}:`, checkin)
+          continue
+        }
+
+>>>>>>> dev
         const checkinDate = new Date(checkin.date)
         if (checkinDate.getFullYear() === year && checkinDate.getMonth() + 1 === month) {
           checkins.push(checkin)
@@ -112,9 +136,65 @@ export async function getCheckinsByMonth(userId: string, year: number, month: nu
       }
     }
 
+<<<<<<< HEAD
     return checkins.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+=======
+    // 按日期和时间排序
+    return checkins.sort((a, b) => {
+      const dateComparison = new Date(a.date).getTime() - new Date(b.date).getTime()
+      if (dateComparison === 0) {
+        // 如果日期相同，按创建时间排序
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      }
+      return dateComparison
+    })
+>>>>>>> dev
   } catch (error) {
     console.error("Failed to get checkins:", error)
+    return []
+  }
+}
+
+<<<<<<< HEAD
+export async function deleteCheckin(id: string, userId: string): Promise<void> {
+  const checkinData = await redis.get(`checkin:${id}`)
+  if (checkinData) {
+    const checkin = JSON.parse(checkinData as string) as CheckinRecord
+=======
+// 新增：获取指定日期的所有打卡记录
+export async function getCheckinsByDate(userId: string, date: string): Promise<CheckinRecord[]> {
+  try {
+    const checkinIds = await redis.smembers(`date_checkins:${userId}:${date}`)
+    const checkins: CheckinRecord[] = []
+
+    for (const id of checkinIds) {
+      const checkinData = await redis.get(`checkin:${id}`)
+      if (checkinData) {
+        let checkin: CheckinRecord
+        
+        if (typeof checkinData === "string") {
+          try {
+            checkin = JSON.parse(checkinData) as CheckinRecord
+          } catch (parseError) {
+            console.error(`Failed to parse checkin data for ${id}:`, parseError)
+            continue
+          }
+        } else if (typeof checkinData === "object" && checkinData !== null) {
+          checkin = checkinData as CheckinRecord
+        } else {
+          continue
+        }
+
+        if (checkin.date === date) {
+          checkins.push(checkin)
+        }
+      }
+    }
+
+    // 按创建时间排序
+    return checkins.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+  } catch (error) {
+    console.error("Failed to get checkins by date:", error)
     return []
   }
 }
@@ -122,7 +202,23 @@ export async function getCheckinsByMonth(userId: string, year: number, month: nu
 export async function deleteCheckin(id: string, userId: string): Promise<void> {
   const checkinData = await redis.get(`checkin:${id}`)
   if (checkinData) {
-    const checkin = JSON.parse(checkinData as string) as CheckinRecord
+    let checkin: CheckinRecord
+    
+    if (typeof checkinData === "string") {
+      try {
+        checkin = JSON.parse(checkinData) as CheckinRecord
+      } catch (error) {
+        console.error(`Failed to parse checkin data for deletion ${id}:`, error)
+        return
+      }
+    } else if (typeof checkinData === "object" && checkinData !== null) {
+      checkin = checkinData as CheckinRecord
+    } else {
+      console.error(`Invalid checkin data format for deletion ${id}:`, checkinData)
+      return
+    }
+
+>>>>>>> dev
     await redis.del(`checkin:${id}`)
     await redis.srem(`user_checkins:${userId}`, id)
     await redis.srem(`date_checkins:${userId}:${checkin.date}`, id)
