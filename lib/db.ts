@@ -61,8 +61,15 @@ export async function createUser(username: string, password: string): Promise<Us
 
 export async function getUserByUsername(username: string): Promise<User | null> {
   try {
-    const userData = await redis.get(`user:${username}`)
-    return userData ? JSON.parse(userData as string) : null
+    console.log("查找用户 key:", `user:${username}`)
+    const userStr = await redis.get(`user:${username}`)
+    console.log("redis 返回:", userStr)
+    if (!userStr) return null
+    if (typeof userStr === "string") {
+      return JSON.parse(userStr)
+    }
+    // 已经是对象，直接返回
+    return userStr as User
   } catch (error) {
     console.error("Failed to get user:", error)
     return null
@@ -126,18 +133,13 @@ export async function deleteCheckin(id: string, userId: string): Promise<void> {
 export async function getUserSettings(userId: string): Promise<UserSettings> {
   try {
     const settingsData = await redis.get(`settings:${userId}`)
-    if (settingsData) {
-      return JSON.parse(settingsData as string)
+    console.log("settingsData", settingsData)
+    if (!settingsData) return null
+    if (typeof settingsData === "string") {
+      return JSON.parse(settingsData) as UserSettings
     }
-
-    // Return default settings if none exist
-    const defaultSettings: UserSettings = {
-      userId,
-      exerciseTypes: ["跑步", "力量训练", "瑜伽", "游泳"],
-      weeklyGoal: 3,
-    }
-    await redis.set(`settings:${userId}`, JSON.stringify(defaultSettings))
-    return defaultSettings
+    // 已经是对象，直接返回
+    return settingsData as UserSettings
   } catch (error) {
     console.error("Failed to get settings:", error)
     return {

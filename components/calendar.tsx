@@ -211,34 +211,37 @@ export default function Calendar({ userId }: CalendarProps) {
           </div>
 
           <div className="grid grid-cols-7 gap-1">
-            {days.map((day, index) => {
-              if (day === null) {
-                return <div key={index} className="p-2" />
-              }
+  {days.map((day, index) => {
+    if (day === null) {
+      return <div key={`empty-${index}`} className="p-2" />
+    }
 
-              const checkin = getCheckinForDate(day)
-              const isToday =
-                new Date().toDateString() ===
-                new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString()
+    const checkin = getCheckinForDate(day)
+    const isToday =
+      new Date().toDateString() ===
+      new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString()
 
-              return (
-                <Button
-                  key={day}
-                  variant={checkin ? "default" : "ghost"}
-                  className={`
-                    p-2 h-12 relative
-                    ${isToday ? "ring-2 ring-blue-500" : ""}
-                    ${checkin ? "bg-green-500 hover:bg-green-600 text-white" : "hover:bg-gray-100"}
-                  `}
-                  onClick={() => handleDateClick(day)}
-                >
-                  <span className="text-sm">{day}</span>
-                  {checkin && <div className="absolute bottom-1 right-1 w-2 h-2 bg-white rounded-full" />}
-                  {!checkin && isToday && <Plus className="absolute bottom-1 right-1 w-3 h-3 text-blue-500" />}
-                </Button>
-              )
-            })}
-          </div>
+    // 用年月日做 key，保证唯一
+    const key = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${day}`
+
+    return (
+      <Button
+        key={key}
+        variant={checkin ? "default" : "ghost"}
+        className={`
+          p-2 h-12 relative
+          ${isToday ? "ring-2 ring-blue-500" : ""}
+          ${checkin ? "bg-green-500 hover:bg-green-600 text-white" : "hover:bg-gray-100"}
+        `}
+        onClick={() => handleDateClick(day)}
+      >
+        <span className="text-sm">{day}</span>
+        {checkin && <div className="absolute bottom-1 right-1 w-2 h-2 bg-white rounded-full" />}
+        {!checkin && isToday && <Plus className="absolute bottom-1 right-1 w-3 h-3 text-blue-500" />}
+      </Button>
+    )
+  })}
+</div>
         </CardContent>
       </Card>
 

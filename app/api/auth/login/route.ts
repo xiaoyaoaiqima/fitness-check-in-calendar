@@ -13,12 +13,12 @@ export async function POST(request: NextRequest) {
 
     const user = await getUserByUsername(username)
     if (!user) {
-      return NextResponse.json({ error: "用户名或密码错误" }, { status: 401 })
+      return NextResponse.json({ error: "用户不存在" }, { status: 401 })
     }
 
     const isValidPassword = await verifyPassword(password, user.passwordHash)
     if (!isValidPassword) {
-      return NextResponse.json({ error: "用户名或密码错误" }, { status: 401 })
+      return NextResponse.json({ error: "密码错误" }, { status: 401 })
     }
 
     const sessionId = await createSession(user.id, user.username)
